@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aris3 — UDSM student portal, in your pocket</title>
+<meta name="description" content="The unofficial Android client for the University of Dar es Salaam ARIS 3 portal. Live balance, results, registration status and your student ID — one app, synced straight from ARIS.">
+<meta property="og:title" content="Aris3 — UDSM student portal, in your pocket">
+<meta property="og:description" content="Live balance, results, registration status and your student ID — synced straight from the UDSM ARIS 3 portal.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%231B5BA6'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>A3</text></svg>">
+<style>
+  :root{
+    --blue:#1B5BA6; --blue-deep:#0A2B52; --blue-ink:#123B70;
+    --gold:#C9A227; --gold-soft:#F5C542;
+    --ink:#0F172A; --muted:#5B6B7E; --line:#E4EAF1;
+    --bg:#F6F8FB; --card:#FFFFFF;
+    --radius:18px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav-in{display:flex;align-items:center;gap:12px;height:62px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--blue-deep));display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;letter-spacing:.5px}
+  .brand{font-weight:800;font-size:17px}
+  .brand span{color:var(--blue)}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;text-decoration:none;font-weight:700;font-size:14px;border-radius:12px;padding:11px 18px;transition:transform .15s ease,box-shadow .15s ease}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-ink));color:#fff;box-shadow:0 8px 20px -8px rgba(27,91,166,.55)}
+  .btn-primary:hover{box-shadow:0 10px 26px -8px rgba(27,91,166,.7)}
+  .btn-ghost{background:#fff;color:var(--blue-ink);border:1px solid var(--line)}
+  .btn-gold{background:linear-gradient(135deg,var(--gold-soft),var(--gold));color:#231A00}
+  .btn svg{flex:none}
+
+  /* ---------- hero ---------- */
+  header{background:
+    radial-gradient(900px 420px at 85% -10%, rgba(201,162,39,.16), transparent 60%),
+    linear-gradient(160deg,#0E3A70 0%, var(--blue-deep) 55%, #081F3D 100%);
+    color:#fff;overflow:hidden}
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:36px;align-items:center;padding:72px 0 84px}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:18px}
+  .kicker::before{content:"";width:26px;height:2px;background:var(--gold-soft);border-radius:2px}
+  h1{font-size:clamp(30px,4.6vw,46px);line-height:1.12;font-weight:800;letter-spacing:-.02em}
+  h1 em{font-style:normal;color:var(--gold-soft)}
+  .sub{margin-top:16px;font-size:16.5px;color:#C7D6EA;max-width:56ch}
+  .hero-badges{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#DCE7F5;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);padding:7px 12px;border-radius:999px}
+  .badge b{color:#fff}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+
+  /* phone mock */
+  .phone-zone{display:flex;justify-content:center}
+  .phone{width:270px;border-radius:38px;background:#0B1B33;border:6px solid #12314F;box-shadow:0 40px 80px -30px rgba(2,12,27,.8),0 0 0 1px rgba(255,255,255,.06);padding:14px;transform:rotate(2.5deg)}
+  .screen{border-radius:26px;background:linear-gradient(180deg,#0F2C55,#0A2342);padding:14px;min-height:430px}
+  .notch{width:86px;height:7px;border-radius:99px;background:#12314F;margin:2px auto 12px}
+  .m-card{border-radius:16px;padding:14px;background:linear-gradient(135deg,#2064B4,#0A2B52);position:relative;overflow:hidden}
+  .m-card::after{content:"";position:absolute;top:-40px;right:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(201,162,39,.35),transparent 70%)}
+  .m-eyebrow{font-size:8.5px;font-weight:800;letter-spacing:.14em;color:rgba(255,255,255,.65)}
+  .m-name{color:#fff;font-weight:800;font-size:14px;margin-top:5px}
+  .m-reg{color:rgba(255,255,255,.62);font-size:9.5px;letter-spacing:.08em;margin-top:2px}
+  .m-status{display:flex;align-items:center;gap:6px;margin-top:14px}
+  .m-dot{width:16px;height:16px;border-radius:50%;background:rgba(126,240,168,.2);display:grid;place-items:center;color:#7EF0A8;font-size:10px;font-weight:800}
+  .m-status b{color:#7EF0A8;font-size:15px;font-weight:800;letter-spacing:.04em}
+  .m-detail{color:rgba(255,255,255,.6);font-size:9px;margin-top:6px}
+  .m-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .m-chip{background:rgba(255,255,255,.08);border-radius:12px;padding:9px 4px;text-align:center;font-size:8px;color:#C7D6EA;font-weight:600}
+  .m-chip i{display:block;width:16px;height:16px;margin:0 auto 5px;border-radius:6px;background:rgba(255,255,255,.14)}
+  .m-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .m-tile{background:#fff;border-radius:13px;padding:10px;color:var(--ink)}
+  .m-tile small{font-size:7.5px;font-weight:800;letter-spacing:.1em;color:#7A8AA0;text-transform:uppercase}
+  .m-tile b{display:block;font-size:13px;margin-top:3px}
+  .m-tile span{font-size:8px;color:#8794A6}
+  .m-tile.gold b{color:#8A6D14}
+
+  /* ---------- download ---------- */
+  .section{padding:64px 0}
+  .dl-card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 24px 60px -30px rgba(10,43,82,.25);padding:34px;display:grid;grid-template-columns:1fr auto;gap:26px;align-items:center}
+  .dl-ver{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--blue-ink);background:#EAF1F9;padding:6px 12px;border-radius:999px}
+  .dl-ver .live{width:8px;height:8px;border-radius:50%;background:#22A45D;box-shadow:0 0 0 4px rgba(34,164,93,.18)}
+  h2{font-size:clamp(22px,3vw,30px);letter-spacing:-.015em;font-weight:800;margin-top:12px}
+  .dl-sub{color:var(--muted);margin-top:8px;font-size:15px;max-width:52ch}
+  .dl-side{display:flex;flex-direction:column;gap:10px;align-items:stretch;min-width:250px}
+  .dl-note{font-size:12px;color:var(--muted);text-align:center}
+  .dl-note a{color:var(--blue);font-weight:700;text-decoration:none}
+  .dl-error{font-size:13px;color:#9A4A00;background:#FFF4E0;border:1px solid #F5D9A8;border-radius:10px;padding:9px 12px}
+
+  /* ---------- features ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;transition:transform .18s ease,box-shadow .18s ease}
+  .feat:hover{transform:translateY(-3px);box-shadow:0 18px 40px -24px rgba(10,43,82,.35)}
+  .feat .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;margin-bottom:14px}
+  .feat h3{font-size:15.5px;font-weight:800}
+  .feat p{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .ic-blue{background:#E7F0FB;color:#1B5BA6}.ic-gold{background:#FBF3DC;color:#8A6D14}
+  .ic-green{background:#E4F6EC;color:#15803D}.ic-purple{background:#F0EAFB;color:#6D4BBF}
+  .ic-red{background:#FDEAEA;color:#B91C1C}.ic-slate{background:#EDF1F6;color:#334155}
+
+  /* ---------- steps ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px;counter-reset:step}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px;position:relative}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;top:-13px;left:20px;width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--blue-ink));color:#fff;font-size:13px;font-weight:800;display:grid;place-items:center;box-shadow:0 6px 14px -6px rgba(27,91,166,.6)}
+  .step h3{font-size:15px;font-weight:800;margin-top:6px}
+  .step p{font-size:13.5px;color:var(--muted);margin-top:6px}
+
+  /* ---------- faq ---------- */
+  .faq{max-width:760px;margin:34px auto 0}
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+  summary{font-weight:800;font-size:14.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-size:18px;color:var(--blue);font-weight:700;transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details p{font-size:13.5px;color:var(--muted);margin-top:10px}
+
+  footer{border-top:1px solid var(--line);background:#fff;padding:26px 0;color:var(--muted);font-size:13px}
+  .foot-in{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+  footer a{color:var(--blue);font-weight:600;text-decoration:none}
+  footer a:hover{text-decoration:underline}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;padding:52px 0 64px;text-align:left}
+    .phone-zone{margin-top:10px}
+    .grid,.steps{grid-template-columns:1fr 1fr}
+    .dl-card{grid-template-columns:1fr}
+    .dl-side{min-width:0}
+  }
+  @media (max-width:560px){
+    .grid,.steps{grid-template-columns:1fr}
+    .nav-cta .btn-ghost{display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <div class="logo">A3</div>
+    <div class="brand">Aris<span>3</span></div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#install">How to install</a>
+      <a class="btn btn-primary" href="#download" id="nav-dl">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </a>
+    </div>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap hero">
+    <div>
+      <div class="kicker">For UDSM students</div>
+      <h1>Your ARIS 3 portal,<br>finally <em>in your pocket</em>.</h1>
+      <p class="sub">Aris3 is a fast, focused Android client for the University of Dar es Salaam ARIS 3 system. Sign in with your normal portal credentials and everything — fees, results, registration, your student ID — syncs live from the official source.</p>
+      <div class="hero-badges">
+        <span class="badge">🔐 <b>Your credentials</b> never leave your device</span>
+        <span class="badge">⚡ <b>Live sync</b> from aris3.udsm.ac.tz</span>
+        <span class="badge">🆓 <b>Free</b>, no ads, no tracking</span>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-gold" href="#download">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5v-17c0-.6.34-1.1.84-1.35L13.7 12 3.84 21.85c-.5-.25-.84-.75-.84-1.35zm13.8-5.4L6.05 21.3l8.5-8.5 2.25 2.3zm3.35-4.3c.34.27.6.7.6 1.2s-.22.9-.57 1.18l-2.29 1.32-2.5-2.5 2.5-2.5 2.26 1.3zM6.05 2.7l10.75 6.2-2.25 2.3-8.5-8.5z"/></svg>
+          Get the Android APK
+        </a>
+        <a class="btn btn-ghost" href="#features" style="background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.16)">See what it does</a>
+      </div>
+    </div>
+    <div class="phone-zone">
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="m-card">
+          <div class="m-eyebrow">REGISTRATION STATUS</div>
+          <div class="m-name">MARY, JOHN JUMA</div>
+          <div class="m-reg">2024-04-00123</div>
+          <div class="m-status"><span class="m-dot">✓</span><b>REGISTERED</b></div>
+          <div class="m-detail">First &amp; Second Semester — you are all set</div>
+        </div>
+        <div class="m-row">
+          <div class="m-chip"><i></i>Finance</div>
+          <div class="m-chip"><i></i>Results</div>
+          <div class="m-chip"><i></i>My ID</div>
+          <div class="m-chip"><i></i>Inbox</div>
+        </div>
+        <div class="m-tiles">
+          <div class="m-tile"><small>Fee balance</small><b>TZS 0</b><span>Fully paid</span></div>
+          <div class="m-tile gold"><small>Programme</small><b>Year 2 of 3</b><span>BSc. in Economics</span></div>
+          <div class="m-tile"><small>Accommodation</small><b>Room 214</b><span>Hall One</span></div>
+          <div class="m-tile"><small>Notifications</small><b>2 new</b><span>Announcements</span></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section" id="download">
+    <div class="dl-card">
+      <div>
+        <span class="dl-ver" id="dl-ver"><span class="live"></span> Latest release</span>
+        <h2>Download Aris3 for Android</h2>
+        <p class="dl-sub">One universal APK for every Android phone (Android 7 and newer). Other platforms are still in testing and will ship later.</p>
+        <p class="dl-error" id="dl-error" hidden>Could not load the release info — use the Download button anyway; it always points to the newest build.</p>
+      </div>
+      <div class="dl-side">
+        <a class="btn btn-primary" id="apk-link" style="justify-content:center;padding:14px 20px" href="https://github.com/zoofam26/aris3-download/releases" >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download APK
+        </a>
+        <a class="btn btn-ghost" style="justify-content:center" id="notes-link" href="https://github.com/zoofam26/aris3-download/releases">Release notes</a>
+        <div class="dl-note" id="dl-note">Checking the latest version…</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features" style="padding-top:8px">
+    <span class="kicker" style="color:var(--blue)">Features</span>
+    <h2>Everything the portal gives you, without the friction</h2>
+    <div class="grid">
+      <div class="feat"><div class="ic ic-green">✓</div><h3>Registration at a glance</h3><p>The home card tells you instantly whether you are registered for the current academic year — registered, partially registered, not yet, or graduated.</p></div>
+      <div class="feat"><div class="ic ic-gold">🎓</div><h3>Results &amp; GPA history</h3><p>Every academic year, semester by semester, with GPA summaries, carry flags and postponed-year notices — exactly as ARIS publishes them.</p></div>
+      <div class="feat"><div class="ic ic-blue">💰</div><h3>Fees &amp; invoices</h3><p>Fee balance, invoice breakdowns and control numbers with one-tap copy, plus payment status ribbons straight from the billing page.</p></div>
+      <div class="feat"><div class="ic ic-purple">🪪</div><h3>Student ID card</h3><p>A crisp digital ID with your photo, barcode and validity date — always with you, even when you forget the plastic card.</p></div>
+      <div class="feat"><div class="ic ic-slate">🏨</div><h3>Accommodation &amp; tenancy</h3><p>Your room, hostel and a shareable PDF tenancy agreement generated on the device.</p></div>
+      <div class="feat"><div class="ic ic-red">🔔</div><h3>Announcements, not noise</h3><p>Portal notifications with unread badges and a feed that separates money matters from academic ones.</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="install" style="padding-top:8px">
+    <span class="kicker" style="color:var(--blue)">Install</span>
+    <h2>Three steps and you are in</h2>
+    <div class="steps">
+      <div class="step"><h3>Download the APK</h3><p>Tap the download button above. The APK comes from this page's GitHub releases — no mirrors, no repackaging.</p></div>
+      <div class="step"><h3>Allow the install</h3><p>Android will ask for permission to install from your browser ("install unknown apps") the first time. Allow it once and continue.</p></div>
+      <div class="step"><h3>Sign in with ARIS</h3><p>Use the same username and password as the aris3.udsm.ac.tz portal. The app keeps them in your device's secure storage only.</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" style="padding-top:8px">
+    <span class="kicker" style="color:var(--blue)">FAQ</span>
+    <h2>Good questions, straight answers</h2>
+    <div class="faq">
+      <details><summary>Is Aris3 an official UDSM app?</summary><p>No. Aris3 is an independent, unofficial client built by a UDSM student for students. It signs into the same ARIS 3 portal you already use and never modifies university data — it reads and, where the portal allows, fills forms on your behalf. For official communication always refer to university channels.</p></details>
+      <details><summary>Where do my credentials go?</summary><p>Your username and password are stored only in your device's hardware-backed secure storage (Android Keystore) and are sent exclusively to aris3.udsm.ac.tz when you sign in. There are no third-party servers, no analytics SDKs and no tracking of any kind.</p></details>
+      <details><summary>The app says my password expired — what now?</summary><p>ARIS 3 expires passwords every 90 days. Change your password on the portal website (aris3.udsm.ac.tz), then sign in with the new one in the app. The app walks you through exactly what happened instead of showing a blank error.</p></details>
+      <details><summary>What happens when a new version is released?</summary><p>The app checks this page's version manifest. When a new release is published you are asked to update; older builds pause until they are updated so that everyone stays on a compatible, verified build.</p></details>
+      <details><summary>iOS, Windows or macOS?</summary><p>They are built and being tested; they will be published here as soon as they pass the same live verification the Android build goes through. Android is shipped first because it is what most students carry.</p></details>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <div>Aris3 — unofficial UDSM ARIS 3 client. Not affiliated with the University of Dar es Salaam.</div>
+    <div><a href="https://github.com/zoofam26/aris3-download/releases">Releases</a> · <a href="https://aris3.udsm.ac.tz">Official portal</a></div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var MANIFESTS = [
+      'latest.json',
+      'https://zoofam26.github.io/aris3-download/latest.json'
+    ];
+    function pick(url) {
+      return fetch(url, { cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      });
+    }
+    function render(m) {
+      var v = m.version || (m.tag_name || '').replace(/^v/, '');
+      if (!v) return;
+      document.getElementById('dl-ver').innerHTML =
+        '<span class="live"></span> Latest release · v' + v;
+      if (m.apk_url) document.getElementById('apk-link').href = m.apk_url;
+      if (m.html_url) document.getElementById('notes-link').href = m.html_url;
+      var when = m.published_at ? new Date(m.published_at) : null;
+      document.getElementById('dl-note').textContent = when && !isNaN(when)
+        ? 'v' + v + ' · published ' + when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'v' + v;
+      if (m.body) {
+        var notes = document.getElementById('notes-link');
+        notes.title = m.body.slice(0, 400);
+      }
+    }
+    MANIFESTS.reduce(function (chain, url) {
+      return chain.catch(function () { return pick(url); });
+    }, Promise.reject()).then(render).catch(function () {
+      document.getElementById('dl-error').hidden = false;
+      document.getElementById('dl-note').textContent = 'Using the newest published build.';
+    });
+  })();
+</script>
+
+</body>
+</html>
