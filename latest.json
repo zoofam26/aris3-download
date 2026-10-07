@@ -1,9 +1,9 @@
 {
   "tag_name": "v1.4.1",
   "name": "UDSM ARIS 3 v1.4.1",
-  "body": "Home card now shows your year registration status — registered, partially registered, not yet registered, graduated or discontinued — instead of the fee balance. Fee balance moved to a dedicated stat tile, Latest GPA replaced by programme progress.",
+  "body": "## Home: year registration status replaces balance due\n\n- The student card now leads with your **year registration status** \u2014 REGISTERED, PARTIALLY REGISTERED, NOT REGISTERED, GRADUATED or DISCONTINUED \u2014 derived live from ARIS (confirmed semesters, programme window, results history). The old boxed FULLY PAID/OUTSTANDING chip is gone.\n- **Fee balance** moved to a dedicated stat tile (with the count-up animation), and the redundant registration tile became **Programme progress** (\"Year 2 of 3\").\n- Landing page + update manifest are now live, so the forced-update gate is fully operational.\n\n**Full Changelog**: https://github.com/zoofam26/aris3-app/compare/v1.4.0...v1.4.1\n\n**Full Changelog**: https://github.com/zoofam26/aris3-app/compare/v1.4.0...v1.4.1\n",
   "html_url": "https://github.com/zoofam26/aris3-download/releases/tag/v1.4.1",
   "apk_url": "https://github.com/zoofam26/aris3-download/releases/download/v1.4.1/aris3-android-universal.apk",
   "version": "1.4.1",
-  "published_at": "2026-10-07T08:30:00Z"
+  "published_at": "2026-10-07T08:17:48Z"
 }
