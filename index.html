@@ -87,6 +87,17 @@
   .dl-note{font-size:12px;color:var(--muted);text-align:center}
   .dl-note a{color:var(--blue);font-weight:700;text-decoration:none}
   .dl-error{font-size:13px;color:#9A4A00;background:#FFF4E0;border:1px solid #F5D9A8;border-radius:10px;padding:9px 12px}
+  .dl-progress{margin-top:4px}
+  .dl-bar{height:10px;border-radius:99px;background:#E4EAF1;overflow:hidden}
+  .dl-fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--blue-ink));transition:width .25s ease}
+  .dl-fill.done{background:linear-gradient(90deg,#1E9E5A,#15803D)}
+  .dl-stats{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);margin-top:8px}
+  .dl-stats b{color:var(--ink)}
+  .dl-state{font-weight:600}
+  .dl-state.ok{color:#15803D}
+  .dl-state.bad{color:#B45309}
+  #dl-cancel{border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12px;padding:6px 12px;border-radius:9px;cursor:pointer}
+  #dl-cancel:hover{color:var(--ink);border-color:#CBD5E1}
 
   /* ---------- features ---------- */
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
@@ -206,12 +217,22 @@
         <p class="dl-error" id="dl-error" hidden>Could not load the release info — use the Download button anyway; it always points to the newest build.</p>
       </div>
       <div class="dl-side">
-        <a class="btn btn-primary" id="apk-link" style="justify-content:center;padding:14px 20px" href="https://github.com/zoofam26/aris3-download/releases" >
+        <button class="btn btn-primary" id="apk-link" type="button" style="justify-content:center;padding:14px 20px">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download APK
-        </a>
-        <a class="btn btn-ghost" style="justify-content:center" id="notes-link" href="https://github.com/zoofam26/aris3-download/releases">Release notes</a>
+          <span id="apk-label">Download APK</span>
+        </button>
+        <div class="dl-progress" id="dl-progress" hidden>
+          <div class="dl-bar"><div class="dl-fill" id="dl-fill"></div></div>
+          <div class="dl-stats"><b id="dl-pct">0%</b><span id="dl-bytes"></span></div>
+          <div class="dl-stats">
+            <span class="dl-state" id="dl-state">Starting…</span>
+            <button id="dl-cancel" type="button">Cancel</button>
+          </div>
+        </div>
+        <a class="btn btn-ghost" style="justify-content:center" id="notes-link" href="https://github.com/zoofam26/aris3-download/releases" target="_blank" rel="noopener">Release notes</a>
         <div class="dl-note" id="dl-note">Checking the latest version…</div>
+        <div class="dl-note">Download stuck or interrupted? Use the <a id="direct-link" href="https://github.com/zoofam26/aris3-download/releases" target="_blank" rel="noopener">direct GitHub download</a>.</div>
+        <noscript><div class="dl-note">JavaScript is off — use the direct GitHub download link above.</div></noscript>
       </div>
     </div>
   </section>
@@ -233,7 +254,7 @@
     <span class="kicker" style="color:var(--blue)">Install</span>
     <h2>Three steps and you are in</h2>
     <div class="steps">
-      <div class="step"><h3>Download the APK</h3><p>Tap the download button above. The APK comes from this page's GitHub releases — no mirrors, no repackaging.</p></div>
+      <div class="step"><h3>Download the APK</h3><p>Tap the download button above. The file (about 60&nbsp;MB) downloads right on this page with a progress bar, and it resumes automatically if your connection drops.</p></div>
       <div class="step"><h3>Allow the install</h3><p>Android will ask for permission to install from your browser ("install unknown apps") the first time. Allow it once and continue.</p></div>
       <div class="step"><h3>Sign in with ARIS</h3><p>Use the same username and password as the aris3.udsm.ac.tz portal. The app keeps them in your device's secure storage only.</p></div>
     </div>
@@ -262,35 +283,206 @@
 
 <script>
   (function () {
+    'use strict';
     var MANIFESTS = [
       'latest.json',
       'https://zoofam26.github.io/aris3-download/latest.json'
     ];
+    // The APK is mirrored into this repository, so the page can fetch it
+    // same-origin: GitHub release assets send no CORS headers, which makes a
+    // progress-tracked, resumable download impossible against them. The
+    // release asset stays available as the direct/native fallback.
+    var APK_LOCAL = 'aris3-android-universal.apk';
+    var APK_TYPE = 'application/vnd.android.package-archive';
+    var MAX_ATTEMPTS = 5;
+
+    var state = {
+      version: null,
+      directUrl: null,
+      fileName: null,
+      busy: false,
+      abort: null
+    };
+
+    function $(id) { return document.getElementById(id); }
+    function delay(ms) {
+      return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
+    function mb(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
+
     function pick(url) {
       return fetch(url, { cache: 'no-store' }).then(function (r) {
         if (!r.ok) throw new Error(r.status);
         return r.json();
       });
     }
+
     function render(m) {
       var v = m.version || (m.tag_name || '').replace(/^v/, '');
       if (!v) return;
-      document.getElementById('dl-ver').innerHTML =
-        '<span class="live"></span> Latest release · v' + v;
-      if (m.apk_url) document.getElementById('apk-link').href = m.apk_url;
-      if (m.html_url) document.getElementById('notes-link').href = m.html_url;
+      state.version = v;
+      state.directUrl = m.apk_url ||
+        'https://github.com/zoofam26/aris3-download/releases/latest';
+      state.fileName = 'aris3-v' + v + '.apk';
+      $('dl-ver').innerHTML = '<span class="live"></span> Latest release \u00b7 v' + v;
+      $('apk-label').textContent = 'Download APK \u00b7 v' + v;
+      $('notes-link').href = m.html_url || $('notes-link').href;
+      $('direct-link').href = state.directUrl;
       var when = m.published_at ? new Date(m.published_at) : null;
-      document.getElementById('dl-note').textContent = when && !isNaN(when)
-        ? 'v' + v + ' · published ' + when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      $('dl-note').textContent = when && !isNaN(when)
+        ? 'v' + v + ' \u00b7 published ' + when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
         : 'v' + v;
-      if (m.body) {
-        var notes = document.getElementById('notes-link');
-        notes.title = m.body.slice(0, 400);
-      }
+      if (m.body) $('notes-link').title = m.body.slice(0, 400);
     }
+
+    // ---------------------------------------------------------------- UI --
+    function showProgress() {
+      $('dl-progress').hidden = false;
+      $('dl-cancel').hidden = false;
+      setBar(0, 0, 0);
+      setState('Starting\u2026', '');
+    }
+    function hideProgress() {
+      $('dl-progress').hidden = true;
+      $('dl-fill').className = 'dl-fill';
+    }
+    function setBar(received, total, pct) {
+      $('dl-fill').style.width = pct + '%';
+      $('dl-pct').textContent = pct + '%';
+      $('dl-bytes').textContent = total ? mb(received) + ' of ' + mb(total) : mb(received);
+    }
+    function setState(text, cls) {
+      var el = $('dl-state');
+      el.textContent = text;
+      el.className = 'dl-state' + (cls ? ' ' + cls : '');
+    }
+    function setIdleLabel() {
+      $('apk-label').textContent = 'Download APK' + (state.version ? ' \u00b7 v' + state.version : '');
+    }
+
+    // ------------------------------------------- resumable stream logic --
+    // Fetches the APK with visible progress. Any interruption (connection
+    // drop, stale redirect, timeout) is retried with HTTP Range resume from
+    // the already-received offset, so a download can no longer die silently
+    // near the end.
+    function streamDownload() {
+      var url = APK_LOCAL + '?v=' + encodeURIComponent(state.version || 'l');
+      var chunks = [];
+      var received = 0;
+      var total = null;
+
+      function attempt(n) {
+        if (state.abort.signal.aborted) {
+          return Promise.reject({ cancelled: true });
+        }
+        var headers = {};
+        if (received > 0) headers['Range'] = 'bytes=' + received + '-';
+        setState(received > 0 ? 'Resuming\u2026' : 'Downloading\u2026', '');
+        return fetch(url, {
+          headers: headers,
+          cache: 'no-store',
+          signal: state.abort.signal,
+          redirect: 'follow'
+        }).then(function (res) {
+          if (res.status === 404) throw { status: 404 };
+          if (!res.ok && res.status !== 206) throw { status: res.status };
+          if (!res.body) throw { noStream: true };
+          if (res.status === 200 && received > 0) {
+            chunks = []; received = 0; total = null; // resume ignored → restart
+          }
+          var len = parseInt(res.headers.get('content-length') || '0', 10);
+          if (res.status === 206 && len) total = received + len;
+          if (res.status === 200 && len) total = len;
+
+          var reader = res.body.getReader();
+          function pump() {
+            return reader.read().then(function (step) {
+              if (step.done) return;
+              chunks.push(step.value);
+              received += step.value.byteLength;
+              var pct = total ? Math.min(100, Math.floor((received / total) * 100)) : 0;
+              setBar(received, total, pct);
+              return pump();
+            });
+          }
+          return pump().then(function () {
+            if (total && received < total) {
+              // Truncated body — retry with resume.
+              if (n >= MAX_ATTEMPTS) throw { attemptsExhausted: true };
+              setState('Connection dropped \u2014 retrying\u2026', 'bad');
+              return delay(1000 * n).then(function () { return attempt(n + 1); });
+            }
+            return new Blob(chunks, { type: APK_TYPE });
+          });
+        }).catch(function (err) {
+          if (state.abort.signal.aborted) throw { cancelled: true };
+          if (err && (err.status === 404 || err.noStream || err.attemptsExhausted)) throw err;
+          // Network-level failure mid-transfer → resume and retry.
+          if (n >= MAX_ATTEMPTS) throw { attemptsExhausted: true };
+          setState('Connection dropped \u2014 retrying\u2026', 'bad');
+          return delay(1000 * n).then(function () { return attempt(n + 1); });
+        });
+      }
+      return attempt(1);
+    }
+
+    function startDownload() {
+      if (state.busy) return;
+      if (!state.directUrl) { // manifest never loaded — still let it try
+        state.directUrl = 'https://github.com/zoofam26/aris3-download/releases/latest';
+      }
+      if (!window.fetch || !window.ReadableStream) {
+        window.location.href = state.directUrl; // very old browser → native
+        return;
+      }
+      state.busy = true;
+      state.abort = new AbortController();
+      showProgress();
+      $('apk-label').textContent = 'Downloading\u2026';
+
+      streamDownload().then(function (blob) {
+        // Hand the finished file to the browser under a versioned name.
+        var objUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = objUrl;
+        a.download = state.fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(objUrl); }, 60000);
+        $('dl-fill').className = 'dl-fill done';
+        setBar(blob.size, blob.size, 100);
+        $('dl-cancel').hidden = true;
+        setState('Complete \u2014 open the file from your notifications to install', 'ok');
+        $('apk-label').textContent = 'Download again';
+      }).catch(function (err) {
+        if (err && err.cancelled) {
+          hideProgress();
+          setIdleLabel();
+        } else if (err && (err.status === 404 || err.noStream)) {
+          // Same-origin mirror unreachable or streaming unsupported — hand
+          // the user to the browser's own (always-capable) downloader.
+          hideProgress();
+          window.location.href = state.directUrl;
+        } else {
+          setState('Kept failing \u2014 tap Retry, or use the direct GitHub download below', 'bad');
+          $('dl-cancel').hidden = true;
+          $('apk-label').textContent = 'Retry download';
+        }
+      }).then(function () {
+        state.busy = false;
+        state.abort = null;
+      });
+    }
+
+    $('apk-link').addEventListener('click', startDownload);
+    $('dl-cancel').addEventListener('click', function () {
+      if (state.abort) state.abort.abort();
+    });
+
     MANIFESTS.reduce(function (chain, url) {
       return chain.catch(function () { return pick(url); });
-    }, Promise.reject()).then(render).catch(function () {
+    }, Promise.reject()).then(render).then(setIdleLabel).catch(function () {
       document.getElementById('dl-error').hidden = false;
       document.getElementById('dl-note').textContent = 'Using the newest published build.';
     });
