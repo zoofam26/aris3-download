@@ -1,9 +1,9 @@
 {
-  "tag_name": "v1.4.2",
-  "name": "UDSM ARIS 3 v1.4.2",
-  "body": "## Home fixes: registration status works + data loads at login\n\n- Hero registration status fixed for real accounts (navbar academic year now surfaced via core 0.3.3) \u2014 REGISTERED / PARTIALLY REGISTERED / NOT REGISTERED / GRADUATED / DISCONTINUED instead of a permanent dash.\n- Dashboard data (profile + results) loads during login, cached for the session \u2014 the hero card opens fully populated and tab switches no longer show placeholders.\n- Failed profile sync shows an explicit pull-to-refresh state instead of reading as NOT REGISTERED.",
-  "html_url": "https://github.com/zoofam26/aris3-download/releases/tag/v1.4.2",
-  "apk_url": "https://github.com/zoofam26/aris3-download/releases/download/v1.4.2/aris3-android-universal.apk",
-  "version": "1.4.2",
-  "published_at": "2026-10-07T22:30:00Z"
+  "tag_name": "v1.4.3",
+  "name": "UDSM ARIS 3 v1.4.3",
+  "body": "## Update flow + download reliability + versioned app name\n\n- \"Download update\" now opens the download page (with install steps) instead of a raw APK link; a secondary \"Open APK link directly\" action is available if the page cannot be reached.\n- Fixed the update button doing nothing on Android 11+: the app declares a browser it is allowed to launch, launches it directly instead of pre-checking, and copies the link with a message if no browser can be opened \u2014 silent dead clicks are gone.\n- The download page now streams the APK on the page itself with a progress bar, automatic resume when the connection drops, and a verified size before hand-off. The file lands as `aris3-v1.4.3.apk`, so a complete download is distinguishable from a broken one \u2014 no more downloads that stick at 100% without finishing.\n- Launcher name now carries the running version (\"Aris3 v1.4.3\").\n- Update-check manifest bumped to 1.4.3 \u2014 older builds gate to this release on next start.\n",
+  "html_url": "https://github.com/zoofam26/aris3-download/releases/tag/v1.4.3",
+  "apk_url": "https://github.com/zoofam26/aris3-download/releases/download/v1.4.3/aris3-android-universal.apk",
+  "version": "1.4.3",
+  "published_at": "2026-10-16T21:07:32Z"
 }
